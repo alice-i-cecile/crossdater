@@ -5,17 +5,19 @@
 # http://www.rstudio.com/shiny/
 #
 
+# Libraries ####
 library(shiny)
+library(dendrotoolkit)
 
+# Logic ####
+
+# IO ####
 shinyServer(function(input, output) {
-   
-  output$distPlot <- renderPlot({
-     
-    # generate and plot an rnorm distribution with the requested
-    # number of observations
-    dist <- rnorm(input$obs)
-    hist(dist)
-    
+  
+  # Cross-dating plot
+  output$crossdate_plot <- renderPlot({
+    #print(ggplot2)
   })
+  
   
 })

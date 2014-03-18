@@ -5,24 +5,118 @@
 # http://www.rstudio.com/shiny/
 #
 
+# Libraries ####
 library(shiny)
 
+
+# UI ####
 shinyUI(pageWithSidebar(
   
-  # Application title
-  headerPanel("New Application"),
+  # Heading
+  headerPanel("crossdateR"),
   
-  # Sidebar with a slider input for number of observations
+  # Tab 1
+  
+  # Sidebar
   sidebarPanel(
-    sliderInput("obs", 
-                "Number of observations:", 
-                min = 1, 
-                max = 1000, 
-                value = 500)
+    # Standardization options
+    
+    # Model (check)
+    wellPanel(
+      
+      h4("Model"),
+      
+      checkboxInput(inputId = "modelTree",
+                    label = "Tree",
+                    value = FALSE),
+      checkboxInput(inputId = "modelTime",
+                    label = "Time",
+                    value = TRUE),      
+      checkboxInput(inputId = "modelAge",
+                     label = "Age",
+                     value = TRUE)
+      
+    ),
+    
+    #Split (check)
+    wellPanel(
+      
+      h4("Split"),
+      
+      checkboxInput(inputId = "splitTree",
+                    label = "Tree",
+                    value = FALSE),
+      checkboxInput(inputId = "splitTime",
+                    label = "Time",
+                    value = FALSE),      
+      checkboxInput(inputId = "splitAge",
+                    label = "Age",
+                    value = TRUE)
+      
+    ),
+    
+    # optim(drop)
+    selectInput(inputId = "optim",
+                label = h4("Optimizer"),
+                choices = c("Sequential" = "sequential",
+                            "Alternate" = "alternate",
+                            "GLM" = "glm",
+                            "GAM" = "gam"),
+                selected = "Alternate"
+    ),
+    
+    
+    # IO
+    wellPanel(
+      h4("Load and save"),
+      # File input
+      fileInput("files", "Upload raw tree ring data", multiple=TRUE),
+      
+      # Download results
+      # TRA, change list, final standardization w/ data
+      downloadButton("new_tra", "Updated dataset"),
+      
+      downloadButton("change_list", "Download change list"),
+      
+      downloadButton("last_standardization", "Download last standardization")
+      
+      ),
+    
+    # Standardize! (button)
+    actionButton("standardize", "Standardize my data")
+    
   ),
   
-  # Show a plot of the generated distribution
+  
   mainPanel(
-    plotOutput("distPlot")
+    # Tab 1
+    # All standardization graphs
+    
+    # Model fit stats
+    # R^2, adj. R^2, sigma, AIC, BIC
+    
+    # Tab 2
+    # List of series (selectable, maybe scrollable)
+    # Beside them average residuals etc.
+    # Check box for "fixed" vs. "floating"
+    
+    # Tab 3
+    # Graph of residuals by time for selected series
+    # Can click on a point to select
+    
+    # Shift year +/-
+    numericInput("offset", strong("Shift series"), value=0),
+    
+    # Merge rings
+    actionButton("merge", "Merge ring with next"),
+    
+    # Split ring
+    actionButton("split", "Split ring into two")
+    
   )
+  
+  
+  
+  
+  
 ))
