@@ -12,7 +12,7 @@ library(shiny)
 shinyUI(pageWithSidebar(
   
   # Heading
-  headerPanel("crossdateR"),
+  headerPanel(strong("crossdateR")),
     
   # Sidebar
   sidebarPanel(
@@ -70,7 +70,7 @@ shinyUI(pageWithSidebar(
       downloadButton("change_list", "Download change list"),
       downloadButton("last_standardization", "Download last standardization"),
       downloadButton("hclust_plot", "Download clustering plot")
-      
+    
     ),
     
     # Standardize! (button)
