@@ -7,7 +7,7 @@
 
 # Libraries ####
 library(shiny)
-library(dendrotoolkit)
+# library(dendrotoolkit)
 
 # Logic ####
 
@@ -27,6 +27,7 @@ shinyServer(function(input, output) {
     # Standardizing the data
     
     # Selecting plot
+    # Log transform y axis
     
     # Model fit table
   }
@@ -45,7 +46,15 @@ shinyServer(function(input, output) {
   
   # Cross-dating ####
   {
-    # Crossdating plot
+    # Residual crossdating plot
+    # Transform y
+    # Dotted line shows limit of existing chronology
+    # If no predicted values exist, compare to base level
+    
+    # Standardized series plus chronology crossdating plot
+    # Transform y
+    
+    # Standard deviation of series residuals
     
     # Automatic shifting
     

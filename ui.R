@@ -12,7 +12,7 @@ library(shiny)
 shinyUI(pageWithSidebar(
   
   # Heading
-  headerPanel(strong("crossdateR")),
+  headerPanel("crossdateR"),
     
   # Sidebar
   sidebarPanel(
@@ -20,12 +20,27 @@ shinyUI(pageWithSidebar(
     wellPanel(
       h3("Standardization options"),
       
+      # Dependent variable to use
+      # Generated automatically from tra data
+      # Only show if more than one choice
+      selectInput(inputId = "dep_var",
+                  label = h4("Dependent variable"),
+                  choices = "Growth",
+                  selected = "Growth"
+      ),
+      
       # Standardization model
       checkboxGroupInput("model", h4("Model effects"),
                          c("Tree", "Time", "Age"),
                          selected=c("Time", "Age")),
       
-
+      # Link function
+      selectInput(inputId = "link",
+                  label = h4("Link"),
+                  choices = c("Identity" = "identity",
+                              "Log" = "log"),
+                  selected = "log"
+      ),
       
       # Model fitting optimizer
       selectInput(inputId = "optim",
@@ -87,8 +102,11 @@ shinyUI(pageWithSidebar(
         # All standardization plot
         # Select plot using dropdown menu
         # Should change options given model
-        selectInput("std_plot_to_show", label=strong("Plot to show"),
-                    choices=c("Tree effect", 
+        selectInput("std_plot_display", label=strong("Plot displayed"),
+                    choices=c("Sample Depth by Time",
+                              "Sample Depth by Age",
+                              "Mean series length",
+                              "Tree effect", 
                               "Time effect", 
                               "Age effect",
                               "Residuals density"),
@@ -119,11 +137,12 @@ shinyUI(pageWithSidebar(
         # Name
         # Start year, end year
         # Tree effect (if applicable)
-        # Mean value, standard deviation of residuals
+        # Standard deviation of residuals
         tableOutput("series_summary"),
         
         # List of series to include in chronology
         # Should be merged into summary table
+        # All selected initially, unless specified by tra
         # https://groups.google.com/forum/#!topic/shiny-discuss/38Edf85wl_g
         checkboxGroupInput("inc_series", h4("Series to include in chronology"),
                            c("T1",
@@ -137,12 +156,20 @@ shinyUI(pageWithSidebar(
         # Select series to crossdate
         selectInput("crossdate_series", label=strong("Series to crossdate"),
                     choices=c("T1", "T2")),
+        selectInput("crossdate_plot", label=strong("Crossdating plot"),
+                    choices=c("Standardized series and chronology"="series_chron_cd_plot",
+                              "Residuals"="residual_cd_plot"),
+                    selected="series_chron_cd_plot"
+        ),
         
         # Graph of residuals by time for selected series
         # Can click on a point to select
         # https://gist.github.com/trestletech/5929598
         plotOutput("crossdate_plot"),
-               
+        
+        # Show standard deviation of residuals
+        textOutput(outputId="sd_series_resid"),
+        
         # Shift year +/-
         numericInput("offset", strong("Shift series"), value=0),
        
