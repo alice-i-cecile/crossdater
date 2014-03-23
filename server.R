@@ -11,6 +11,8 @@ library(dendrotoolkit)
 library(ggplot2)
 library(stringr)
 library(igraph)
+library(cluster)
+library(ggdendro)
 
 # Utility ####
 
@@ -61,7 +63,6 @@ find_sigma_series <- function(series, resids, link="log", dep_var="Growth"){
   
   return(sd(x, na.rm=T))
 }
-
 
 # Change list ####
 
@@ -136,6 +137,19 @@ make_std_series_chron_plot <- function(series, resids, effects, split=NA, link="
   }
   
   return(my_plot)
+}
+
+make_hclust_plot <- function(resids, link="log", dep_var="Growth"){
+  dist_matrix <- find_dist_tra(resids, group_by="Time", link=link, distance="euclidean", dep_var=dep_var)
+  
+  dummy_d <- dist(dist_matrix)
+  dummy_d[] <- dist_matrix[lower.tri(dist_matrix)]
+  
+  htree <- hclust(dummy_d)
+    
+  hplot <- ggdendrogram(dendro_data(htree, type="triangle"), rotate=TRUE)
+  
+  return(hplot)
 }
 
 # IO ####
@@ -261,10 +275,7 @@ shinyServer(function(input, output) {
       checkboxGroupInput("inc_series", h4("Series to include in chronology"),
       choices=all_trees,
       selected=inc_trees)
-    })
-
-    # Hierarchical series plot
-    
+    })      
     
     # Series summary table
     output$series_summary <- renderDataTable(
@@ -338,6 +349,18 @@ shinyServer(function(input, output) {
     # Merge rings
     
   }
+  
+  # Hierarchical series plot ####
+  {
+    output$hclust_series_plot <- renderPlot({
+      if (is.null(standardization())){return(NULL)}
+      
+      return(isolate(
+        print(make_hclust_plot(standardization()$dat$residuals, link=input$link, dep_var=input$dep_var))
+      ))
+      
+    })
+  }  
   
   
   # Saving output ####
