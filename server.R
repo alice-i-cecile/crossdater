@@ -47,6 +47,7 @@ series_summary_table <- function(tra)
   return(sst)
 }
 
+# Returns sigma^2 of residuals
 find_sigma_series <- function(series, resids, link="log", dep_var="Growth"){
   x <- resids[resids$Tree==series, dep_var]
   
@@ -116,7 +117,7 @@ pseudo_residuals_tra <- function(series, tra, effects, model, split, link, dep_v
 
 # Plotting ####
 
-make_series_resid_plot <- function(series, resids, link="log", dep_var="Growth"){
+make_series_resid_plot <- function(series, resids, sigma_chron, link="log", dep_var="Growth"){  
   dat <- resids[resids$Tree==series, ]
   dat$Time <- as.numeric(as.character(dat$Time))
   names(dat)[names(dat)==dep_var] <- "y"
@@ -126,11 +127,16 @@ make_series_resid_plot <- function(series, resids, link="log", dep_var="Growth")
   
   my_plot <- ggplot(dat, aes(x=Time, y=y)) + geom_line() + xlab("Year") + ylab("Residuals") + theme_bw() + xlim(c(first_year, last_year))
   
+  
+  # Adding lines showing expected value plus sd of chronology residuals
   if (link=="log"){
-    my_plot <- my_plot + geom_hline(y=1)
+    sigma_u <- exp(0 + sigma_chron)
+    sigma_l <- exp(0 - sigma_chron)
+    my_plot <- my_plot + geom_hline(y=1) + geom_hline(y=sigma_u, linetype="dashed") + geom_hline(y=sigma_l, linetype="dashed")
   } else {
-    my_plot <- my_plot + geom_hline(y=0)
-  }
+    sigma_u <- 0 + sigma_chron
+    sigma_l <- 0 - sigma_chron
+    my_plot <- my_plot + geom_hline(y=0) + geom_hline(y=sigma_u, linetype="dashed") + geom_hline(y=sigma_l, linetype="dashed")  }
   return(my_plot)
 }
 
@@ -325,9 +331,12 @@ shinyServer(function(input, output) {
         # Add in pseudoresiduals
         # For excluded but relevant series
         exc_series <- unique(original_tra()[new_tra()$Include==F, "Tree"])
-        pseudo_resids <- pseudo_residuals_tra(exc_series, new_tra(), std$effects, model=input$model, split=input$split, link=input$link, dep_var=input$dep_var)
         
-        std$dat$residuals <- rbind(std$dat$residuals, pseudo_resids)
+        if (length(exc_series)>0){
+          pseudo_resids <- pseudo_residuals_tra(exc_series, new_tra(), std$effects, model=input$model, split=input$split, link=input$link, dep_var=input$dep_var)
+          
+          std$dat$residuals <- rbind(std$dat$residuals, pseudo_resids)
+        }
         
         return(std)
       }))
@@ -420,7 +429,7 @@ shinyServer(function(input, output) {
         # Transform y
         # Dotted line shows limit of existing chronology
         # If no predicted values exist, compare to base level
-        isolate(print(make_series_resid_plot(input$crossdate_series, standardization()$dat$residuals, input$link, input$dep_var)))
+        isolate(print(make_series_resid_plot(input$crossdate_series, standardization()$dat$residuals, standardization()$fit$sigma_sq, input$link, input$dep_var)))
       }
     }) 
     # Standardized series plus chronology crossdating plot
