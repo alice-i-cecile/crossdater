@@ -95,6 +95,25 @@ apply_changes_tra <- function(tra, changes)
   return(tra)
 }
 
+# Pseudo-residuals ####
+pseudo_residuals_tra <- function(series, tra, effects, model, split, link, dep_var){
+  
+  # Repair effects if needed
+  # Due to missing coefficients
+  skele <- make_skeleton_effects(tra, model, split, link)
+  
+  effects <- synchronize_effects(effects, skele, split)
+
+  # Only generate for new series
+  short_tra <- tra[tra$Tree %in% series, ]
+  
+  predicted <- predicted_tra(effects, short_tra, model, split, link, dep_var)
+    
+  resids <- residuals_tra(short_tra, predicted, link, dep_var)
+
+  return (resids)
+}
+
 # Plotting ####
 
 make_series_resid_plot <- function(series, resids, link="log", dep_var="Growth"){
@@ -296,14 +315,21 @@ shinyServer(function(input, output) {
         inc_tra <- inc_tra[inc_tra$Include==TRUE,]
         
         # Standardize
-        return(
-          standardize_tra(inc_tra, 
-          model=input$model, split=input$e_split, 
-          link=input$link, dep_var=input$dep_var, 
-          optim=input$optim, 
-          auto_cluster=input$auto_cluster, n_clusters=input$n_clusters, 
-          show_plots=F, return_data=T)
-        )
+        std <- standardize_tra(inc_tra, 
+                        model=input$model, split=input$e_split, 
+                        link=input$link, dep_var=input$dep_var, 
+                        optim=input$optim, 
+                        auto_cluster=input$auto_cluster, n_clusters=input$n_clusters, 
+                        show_plots=F, return_data=T)
+        
+        # Add in pseudoresiduals
+        # For excluded but relevant series
+        exc_series <- unique(original_tra()[new_tra()$Include==F, "Tree"])
+        pseudo_resids <- pseudo_residuals_tra(exc_series, new_tra(), std$effects, model=input$model, split=input$split, link=input$link, dep_var=input$dep_var)
+        
+        std$dat$residuals <- rbind(std$dat$residuals, pseudo_resids)
+        
+        return(std)
       }))
 
     })
