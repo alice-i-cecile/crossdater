@@ -57,7 +57,7 @@ find_sigma_series <- function(series, resids, link="log", dep_var="Growth"){
   return(sd(x, na.rm=T))
 }
 
-# Change list ####
+# Changes ####
 
 # Checking if a series is included in the chronology
 check_included <- function(series, tra){
@@ -65,8 +65,33 @@ check_included <- function(series, tra){
 }
 
 # Apply changes to tree-ring array
-apply_changes_tra <- function(tra, change_list)
+apply_changes_tra <- function(tra, changes)
 {
+  
+  changer <- function(series, action, value){
+    
+    # Avoid side effects
+    new_tra <- tra
+      
+    # Including / excluding
+    if (action=="Include"){
+      new_tra[tra$Tree==series, "Include"] <- value
+    }
+    
+    return(new_tra)
+  }
+  
+  # Only make changes if they exist
+  if (nrow(changes)>0){
+    
+    # Apply changes one a time
+    for (r in 1:nrow(changes)){
+      tra <- changer(changes[r, "Series"], changes[r, "Action"], changes[r, "Value"])
+    }
+    
+  }
+ 
+  
   return(tra)
 }
 
@@ -187,7 +212,7 @@ shinyServer(function(input, output) {
   {
     
     # Change list  
-    output$changes <- renderTable({
+    changes <- reactive({
       
       # Data must be loaded
       if (is.null(original_tra())){return(NULL)}
@@ -225,17 +250,32 @@ shinyServer(function(input, output) {
       
       # Return changes if any exist
       if (nrow(change_df) > 0){
+
+        # Make sure columns are not factors
+        change_df <- data.frame(lapply(change_df, as.character), stringsAsFactors=FALSE)
+        
         return(change_df)
       } else {
         return(NULL)
       }
     })
     
+    # Change dataframe to display
+    output$changes <- renderTable({
+      changes()
+    })
+    
     # New data set
     new_tra <- reactive({
       if (is.null(original_tra())){return(NULL)}
+      
+      # Return original if no changes have been made
+      if (is.null(changes())){
+        return(original_tra())
+      }
+      
       # Refresh based on change list
-      return(apply_changes_tra(original_tra(), change_list()))     
+      return(apply_changes_tra(original_tra(), changes()))     
     })
   }
     
@@ -250,10 +290,14 @@ shinyServer(function(input, output) {
         
         # Data needs to be loaded
         if (is.null(original_tra())){return(NULL)}
-                
+        
+        # Only use included series
+        inc_tra <- new_tra()
+        inc_tra <- inc_tra[inc_tra$Include==TRUE,]
+        
         # Standardize
         return(
-          standardize_tra(original_tra(), 
+          standardize_tra(inc_tra, 
           model=input$model, split=input$e_split, 
           link=input$link, dep_var=input$dep_var, 
           optim=input$optim, 
