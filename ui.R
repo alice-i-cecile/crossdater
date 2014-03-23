@@ -1,4 +1,3 @@
-
 # This is the user-interface definition of a Shiny web application.
 # You can find out more about building applications with Shiny here:
 # 
@@ -16,59 +15,70 @@ shinyUI(pageWithSidebar(
     
   # Sidebar
   sidebarPanel(
-    # Standardization options
     wellPanel(
       h3("Standardization options"),
       
       # Dependent variable to use
       # Generated automatically from tra data
       # Only show if more than one choice
-      selectInput(inputId = "dep_var",
-                  label = h4("Dependent variable"),
-                  choices = "Growth",
-                  selected = "Growth"
-      ),
+      uiOutput("dep_vars"),
       
       # Standardization model
       checkboxGroupInput("model", h4("Model effects"),
                          c("Tree", "Time", "Age"),
                          selected=c("Time", "Age")),
       
+      # Split effects
+      # Named e_split to avoid namespace conflicts
+      selectInput(inputId = "e_split",
+                  label = h4("Split effects"),
+                  choices = c(None=NA, Tree="Tree", Time="Time", Age="Age"),
+                  selected = "None"
+      ),
+      
+      # Clustering
+      conditionalPanel(
+        condition = "input.e_split == 'Tree' || input.e_split == 'Time' || input.e_split == 'Age'",
+        
+        h4("Clustering"),
+        
+        # Automatic clustering
+        # Only appears if split is selected
+        checkboxInput("auto_cluster", label="Identify clusters automatically"),
+        
+        conditionalPanel(
+          # Select number of clusters
+          # Only displays when automatic clustering is enabled 
+          # Max is number of series
+          # 0 means automatic number of clusters
+          condition = "input.auto_cluster",
+          
+          numericInput("n_clusters", strong("Number of clusters"), min=0, value=2)
+        )
+      ),
+      
       # Link function
       selectInput(inputId = "link",
                   label = h4("Link"),
-                  choices = c("Identity" = "identity",
-                              "Log" = "log"),
-                  selected = "log"
+                  choices = c(Identity = "identity",
+                              Log = "log"),
+                  selected = "Log"
       ),
       
       # Model fitting optimizer
       selectInput(inputId = "optim",
                   label = h4("Optimizer"),
-                  choices = c("Sequential" = "sequential",
-                              "Alternate" = "alternate",
-                              "GLM" = "glm",
-                              "GAM" = "gam"),
-                  selected = "alternate"
+                  choices = c(Sequential = "sequential",
+                              Alternate = "alternate",
+                              GLM = "glm",
+                              GAM = "gam"),
+                  selected = "Alternate"
       ),
       
-      # Clustering
-      h3("Clustering"),
       
-      # Split
-      # Only appears if age in model
-      checkboxInput("split_age", label="Use multiple split age effects"),
       
-      # Automatic clustering
-      # Only appears if split age
-      checkboxInput("auto_cluster", label="Identify clusters automatically"),
-      
-      # Select number of clusters
-      # Only displays when automatic clustering is enabled 
-      # Max is number of series
-      # 0 means automatic number of clusters
-      numericInput("num_clusters", strong("Number of clusters"), min=0, value=2)
-      
+      # Standardize! (button)
+      actionButton("standardize", "Standardize my data")
     ),
     
     # IO
@@ -76,21 +86,16 @@ shinyUI(pageWithSidebar(
       h3("Data"),
       # File input
       h4("Load data"),
-      fileInput("files", "Upload raw tree ring data", multiple=TRUE),
+      fileInput("tra_upload", "Upload tree ring data", multiple=FALSE),
       
       # Download results
       # TRA, change list, final standardization w/ data
       h4("Save data"),
       downloadButton("new_tra", "Download updated dataset"),
       downloadButton("change_list", "Download change list"),
-      downloadButton("last_standardization", "Download last standardization"),
-      downloadButton("hclust_plot", "Download clustering plot")
-    
-    ),
-    
-    # Standardize! (button)
-    actionButton("standardize", "Standardize my data")
-    
+      downloadButton("last_standardization", "Download last standardization")
+      
+    )
   ),
   
   
@@ -99,20 +104,24 @@ shinyUI(pageWithSidebar(
       
       # Tab 1
       tabPanel(strong("Standardization"), 
-        # All standardization plot
+        # All standardization plots
         # Select plot using dropdown menu
         # Should change options given model
         selectInput("std_plot_display", label=strong("Plot displayed"),
-                    choices=c("Sample Depth by Time",
-                              "Sample Depth by Age",
-                              "Mean series length",
-                              "Tree effect", 
-                              "Time effect", 
-                              "Age effect",
-                              "Residuals density"),
+                    choices=c("Sample Depth by Time"="sample_depth_time_plot",
+                              "Sample Depth by Age"="sample_depth_age_plot",
+                              "Mean series length"="series_length_plot",
+                              "Tree effect"="tree_effect_plot",
+                              "Tree effect density"="tree_effect_density_plot", 
+                              "Time effect"="time_effect_plot",
+                              "Time effect density"="time_effect_density_plot", 
+                              "Age effect"="age_effect_plot",
+                              "Age effect density"="age_effect_density_plot", 
+                              "Residuals density"="residual_density_plot"),
                     selected="Time effect"  
         ),
         
+        # Selected plot
         plotOutput("standardization_plot"),
        
         # Model fit stats
@@ -124,40 +133,31 @@ shinyUI(pageWithSidebar(
       ),
       
       # Tab 2
-      tabPanel(strong("Series"),
-
-        # observe() + updateCheckBoxGroupInput() to populate list of series               
-        
-        # Hierarchical cluster plot of series
-        # ggdendro library
-        plotOutput("hclust_series_plot"),
-        
+      tabPanel(strong("Series"),              
+  
         # Summary for series
         # Sortable table: http://glimmer.rstudio.com/szakacs/FooTableDemo/
         # Name
         # Start year, end year
         # Tree effect (if applicable)
         # Standard deviation of residuals
-        tableOutput("series_summary"),
+        dataTableOutput("series_summary"),
         
         # List of series to include in chronology
         # Should be merged into summary table
         # All selected initially, unless specified by tra
         # https://groups.google.com/forum/#!topic/shiny-discuss/38Edf85wl_g
-        checkboxGroupInput("inc_series", h4("Series to include in chronology"),
-                           c("T1",
-                             "T2")
-        )
+        uiOutput("series_checklist")      
+
       ),
       
       # Tab 3
       tabPanel(strong("Crossdating"), 
         
         # Select series to crossdate
-        selectInput("crossdate_series", label=strong("Series to crossdate"),
-                    choices=c("T1", "T2")),
-        selectInput("crossdate_plot", label=strong("Crossdating plot"),
-                    choices=c("Standardized series and chronology"="series_chron_cd_plot",
+        uiOutput("crossdate_series_list"),
+        selectInput("crossdate_plot_choice", label=strong("Crossdating plot"),
+                    choices=c("Std. series and chronology"="series_chron_cd_plot",
                               "Residuals"="residual_cd_plot"),
                     selected="series_chron_cd_plot"
         ),
@@ -168,6 +168,7 @@ shinyUI(pageWithSidebar(
         plotOutput("crossdate_plot"),
         
         # Show standard deviation of residuals
+        strong("Sigma"),
         textOutput(outputId="sd_series_resid"),
         
         # Shift year +/-
@@ -188,7 +189,18 @@ shinyUI(pageWithSidebar(
        
         # Reset series
         actionButton("reset", "Reset series")
-      )
+      ),
+      
+      # Tab 4
+      tabPanel(strong("Hierarchical cluster"),
+               # Hierarchical cluster plot of series
+               # ggdendro library
+               plotOutput("hclust_series_plot")
+      ),
+      
+      # Tab 5
+      tabPanel(strong("About")
+      )      
     )
   )
 ))
