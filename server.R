@@ -1,10 +1,3 @@
-
-# This is the server logic for a Shiny web application.
-# You can find out more about building applications with Shiny here:
-# 
-# http://www.rstudio.com/shiny/
-#
-
 # Libraries ####
 library(shiny)
 library(dendrotoolkit)
@@ -76,7 +69,6 @@ apply_changes_tra <- function(tra, change_list)
 {
   return(tra)
 }
-
 
 # Plotting ####
 
@@ -195,14 +187,48 @@ shinyServer(function(input, output) {
   {
     
     # Change list  
-    output$change_list <- reactive({
-            
+    output$changes <- renderTable({
+      
+      # Data must be loaded
       if (is.null(original_tra())){return(NULL)}
       
-      # Including / excluding
-      include_df <- data.frame(Value=input$inc_series)
+      # Change list prototype
+      change_df <- data.frame(Series=NA, Action=NA, Value=NA)[0,]
       
-      return(include_df)
+      # Including / excluding series
+      if (!is.null(input$inc_series)){
+      
+        all_trees <- unique(original_tra()$Tree)
+        
+        orig_inc_trees <- unique(original_tra()[original_tra()$Include==TRUE, "Tree"])
+        orig_exc_trees <- unique(original_tra()[original_tra()$Include==FALSE, "Tree"])
+        
+        inc_trees <- input$inc_series
+        exc_trees <- setdiff(all_trees, inc_trees)
+        
+        new_inc_trees <- inc_trees[!(inc_trees %in% orig_inc_trees)]
+        new_exc_trees <- exc_trees[!(exc_trees %in% orig_exc_trees)]
+        
+        # New trees to include
+        if (length(new_inc_trees > 0)){
+          inc_df <- data.frame(Series=new_inc_trees, Action="Include", Value=TRUE)
+          change_df <- rbind(change_df, inc_df)
+        }
+        
+        # New trees to exclude
+        if (length(new_exc_trees > 0)){
+          exc_df <- data.frame(Series=new_exc_trees, Action="Include", Value=FALSE)
+          change_df <- rbind(change_df, exc_df)
+        }
+      
+      }
+      
+      # Return changes if any exist
+      if (nrow(change_df) > 0){
+        return(change_df)
+      } else {
+        return(NULL)
+      }
     })
     
     # New data set
@@ -361,8 +387,7 @@ shinyServer(function(input, output) {
       
     })
   }  
-  
-  
+    
   # Saving output ####
   {
     # New dataset
