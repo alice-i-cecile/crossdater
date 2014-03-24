@@ -308,26 +308,29 @@ shinyServer(function(input, output) {
       
       # Concatenate new shifts
       if(!is.null(input$offset)){
-        if (input$offset!=0){
-          new_shift <- data.frame(Series=input$crossdate_series, Action="Shift", Value=input$offset)          
-          
-          shifts <- rbind(shifts, new_shift)
-          
-          # Use only most recent shift for the new series
-          shifts_i <- which(shifts$Series==input$crossdate_series)
-          redundant_shifts <- shifts_i[shifts_i < nrow(shifts)]
-          if (length(redundant_shifts)>0){
-            shifts <- shifts[-redundant_shifts,]
+        # Don't copy settings over to new series
+        isolate({
+          if (input$offset!=0){
+        
+              new_shift <- data.frame(Series=input$crossdate_series, Action="Shift", Value=input$offset)          
+              shifts <- rbind(shifts, new_shift)
+              
+              # Use only most recent shift for the new series
+              shifts_i <- which(shifts$Series==input$crossdate_series)
+              redundant_shifts <- shifts_i[shifts_i < nrow(shifts)]
+              if (length(redundant_shifts)>0){
+                shifts <- shifts[-redundant_shifts,]
+              }
+              
+          } else {
+            # Remove all shift changes when shift set to 0 years
+            shifts <- shifts[-which(shifts$Series==input$crossdate_series),] 
           }
-        } else {
-          # Remove all shift changes when shift set to 0 years
-          shifts <- shifts[-which(shifts$Series==input$crossdate_series),] 
-        }
+        })
       }
       
       # Save updated shifts
       isolate(assign("old_shifts", shifts, envir=.GlobalEnv))
-      print(shifts)
       return(shifts)
     })
     
@@ -500,9 +503,32 @@ shinyServer(function(input, output) {
         find_sigma_series(input$crossdate_series, resids=new_residuals, link=input$link, dep_var=input$dep_var)
         ))
     })
+    
+    # Update shift series control
+   observe({
+      if (is.null(input$cross_date_series)){return(NULL)}
+      
+      if(is.null(all_shifts())){return(NULL)}
+      print("Foo!")
+      
+      # Only refresh when series changes
+      input$crossdate_series
+      
+      # Set value in control to previous shift for series
+      isolate({
+      if (input$crossdate_series %in% all_shifts()$Series){
+        current_shift <- all_shifts()[all_shifts()$Series == input$crossdate_series, "Value"]
+      } else {
+        current_shift <- 0
+      }
+      
+      print(paste(input$crossdate_series, current_shift))
+      
+      updateNumericInput(session, "offset", value=current_shift)
+    })})
+    
     # Automatic shifting
     
-    # Shift series
     
     # Split ring
     
