@@ -7,11 +7,6 @@ library(igraph)
 library(cluster)
 library(ggdendro)
 
-# Cleanup ####
-
-# Remove old change files
-file.remove("old_shifts.csv")
-
 # Utility ####
 
 # Find columns that could serve as a dependent variable
@@ -304,12 +299,12 @@ shinyServer(function(input, output) {
       
       # Create storage of old shifts if it doesn't exist
       isolate(
-      if (!file.exists("old_shifts.csv")){
-        write.csv(data.frame(Series=NA, Action=NA, Value=NA)[0,], file="old_shifts.csv")
+      if (!exists("old_shifts", envir=.GlobalEnv)){
+        assign("old_shifts", data.frame(Series=NA, Action=NA, Value=NA)[0,], envir=.GlobalEnv)
       })
       
       # Load in old shifts
-      isolate(shifts <- read.csv("old_shifts.csv")[,-1])
+      isolate(shifts <- old_shifts)
       
       # Concatenate new shifts
       if(!is.null(input$offset)){
@@ -331,7 +326,7 @@ shinyServer(function(input, output) {
       }
       
       # Save updated shifts
-      isolate(write.csv(shifts, file="old_shifts.csv"))
+      isolate(assign("old_shifts", shifts, envir=.GlobalEnv))
       print(shifts)
       return(shifts)
     })
