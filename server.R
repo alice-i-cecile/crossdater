@@ -7,6 +7,11 @@ library(igraph)
 library(cluster)
 library(ggdendro)
 
+# Cleanup ####
+
+# Remove old change files
+file.remove("old_shifts.csv")
+
 # Utility ####
 
 # Find columns that could serve as a dependent variable
@@ -79,6 +84,10 @@ apply_changes_tra <- function(tra, changes)
       new_tra[tra$Tree==series, "Include"] <- value
     }
     
+    if (action=="Shift"){
+      new_tra[tra$Tree==series, "Time"] <- as.numeric(as.character(new_tra[tra$Tree==series, "Time"])) + as.numeric(value)
+    }
+    
     return(new_tra)
   }
   
@@ -116,7 +125,6 @@ pseudo_residuals_tra <- function(series, tra, effects, model, split, link, dep_v
 }
 
 # Plotting ####
-
 make_series_resid_plot <- function(series, resids, sigma_chron, link="log", dep_var="Growth"){  
   dat <- resids[resids$Tree==series, ]
   dat$Time <- as.numeric(as.character(dat$Time))
@@ -270,7 +278,12 @@ shinyServer(function(input, output) {
           exc_df <- data.frame(Series=new_exc_trees, Action="Include", Value=FALSE)
           change_df <- rbind(change_df, exc_df)
         }
+      }
       
+      # Shifting series
+      if(!is.null(all_shifts())){
+          shift_df <- all_shifts()
+          change_df <- rbind(change_df, shift_df)
       }
       
       # Return changes if any exist
@@ -283,6 +296,44 @@ shinyServer(function(input, output) {
       } else {
         return(NULL)
       }
+    })
+    
+    # Keep track of all shifts that occur      
+    all_shifts <- reactive({
+      if(is.null(original_tra())){return(NULL)}
+      
+      # Create storage of old shifts if it doesn't exist
+      isolate(
+      if (!file.exists("old_shifts.csv")){
+        write.csv(data.frame(Series=NA, Action=NA, Value=NA)[0,], file="old_shifts.csv")
+      })
+      
+      # Load in old shifts
+      isolate(shifts <- read.csv("old_shifts.csv")[,-1])
+      
+      # Concatenate new shifts
+      if(!is.null(input$offset)){
+        if (input$offset!=0){
+          new_shift <- data.frame(Series=input$crossdate_series, Action="Shift", Value=input$offset)          
+          
+          shifts <- rbind(shifts, new_shift)
+          
+          # Use only most recent shift for the new series
+          shifts_i <- which(shifts$Series==input$crossdate_series)
+          redundant_shifts <- shifts_i[shifts_i < nrow(shifts)]
+          if (length(redundant_shifts)>0){
+            shifts <- shifts[-redundant_shifts,]
+          }
+        } else {
+          # Remove all shift changes when shift set to 0 years
+          shifts <- shifts[-which(shifts$Series==input$crossdate_series),] 
+        }
+      }
+      
+      # Save updated shifts
+      isolate(write.csv(shifts, file="old_shifts.csv"))
+      print(shifts)
+      return(shifts)
     })
     
     # Change dataframe to display
@@ -411,38 +462,47 @@ shinyServer(function(input, output) {
       )
     })
 
-
+    # Crossdating plots
     output$crossdate_plot <- renderPlot({
       if (is.null(standardization())){return(NULL)}
       
       # Trigger when series selected changes
+      # Or when data is modified
       input$crossdate_series
+      new_tra()
+      
+      # Generate updated residuals
+      isolate(new_residuals <- pseudo_residuals_tra(input$crossdate_series, new_tra(), standardization()$effects, input$model, input$split, input$link, input$dep_var))
       
       if (input$crossdate_plot_choice=="series_chron_cd_plot"){
         # Residual crossdating plot
         # Transform y
         # Dotted line shows limit of existing chronology
         # If no predicted values exist, compare to base level
-        isolate(print(make_std_series_chron_plot(input$crossdate_series, standardization()$dat$residuals, standardization()$effects, input$split, input$link, input$dep_var)))
+        my_plot <- isolate(make_std_series_chron_plot(input$crossdate_series, new_residuals, standardization()$effects, input$split, input$link, input$dep_var))
       } else if (input$crossdate_plot_choice=="residual_cd_plot"){
-        # Residual crossdating plot
+        # Standardized series plus chronology crossdating plot
         # Transform y
         # Dotted line shows limit of existing chronology
         # If no predicted values exist, compare to base level
-        isolate(print(make_series_resid_plot(input$crossdate_series, standardization()$dat$residuals, standardization()$fit$sigma_sq, input$link, input$dep_var)))
+        my_plot <- isolate(make_series_resid_plot(input$crossdate_series, new_residuals, standardization()$fit$sigma_sq, input$link, input$dep_var))
       }
-    }) 
-    # Standardized series plus chronology crossdating plot
-    # Transform y
+      return(print(my_plot))
+    })
     
     # Standard deviation of series residuals
     output$sd_series_resid <- renderText({
       if (is.null(standardization())){return(NULL)}
       
+      # Triggers
       input$crossdate_series
+      new_tra()
+      
+      # Updated residuals
+      isolate(new_residuals <- pseudo_residuals_tra(input$crossdate_series, new_tra(), standardization()$effects, input$model, input$split, input$link, input$dep_var))
       
       return(isolate(
-        find_sigma_series(input$crossdate_series, resids=standardization()$dat$residuals, link=input$link, dep_var=input$dep_var)
+        find_sigma_series(input$crossdate_series, resids=new_residuals, link=input$link, dep_var=input$dep_var)
         ))
     })
     # Automatic shifting
