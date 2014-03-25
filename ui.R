@@ -173,7 +173,7 @@ shinyUI(pageWithSidebar(
         actionButton("auto_offset", "Shift series automatically"),
        
         # Select year
-        numericInput("selectedYear", strong("Select Year"), value=2000),
+        numericInput("selected_year", strong("Select Year"), value=2000),
         
         # Merge rings
         actionButton("merge", "Merge ring with next"),
