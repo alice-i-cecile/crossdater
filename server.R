@@ -198,7 +198,7 @@ make_hclust_plot <- function(resids, link="log", dep_var="Growth"){
 }
 
 # IO ####
-shinyServer(function(input, output) { 
+shinyServer(function(input, output, session) { 
   
   # Processing input ####
   {
@@ -327,10 +327,13 @@ shinyServer(function(input, output) {
             shifts <- shifts[-which(shifts$Series==input$crossdate_series),] 
           }
         })
-      }
+      }            
       
       # Save updated shifts
       isolate(assign("old_shifts", shifts, envir=.GlobalEnv))
+      
+      
+      
       return(shifts)
     })
     
@@ -505,27 +508,29 @@ shinyServer(function(input, output) {
     })
     
     # Update shift series control
-   observe({
-      if (is.null(input$cross_date_series)){return(NULL)}
-      
-      if(is.null(all_shifts())){return(NULL)}
-      print("Foo!")
-      
-      # Only refresh when series changes
-      input$crossdate_series
-      
-      # Set value in control to previous shift for series
-      isolate({
-      if (input$crossdate_series %in% all_shifts()$Series){
-        current_shift <- all_shifts()[all_shifts()$Series == input$crossdate_series, "Value"]
-      } else {
-        current_shift <- 0
-      }
-      
-      print(paste(input$crossdate_series, current_shift))
-      
-      updateNumericInput(session, "offset", value=current_shift)
-    })})
+    # Currently bugged
+    # Updating input occurs before other reactives realize the series has changed
+    # Changing shifts to observer may fix things w/ priority
+#     observe({
+#       if (is.null(input$crossdate_series)){return(NULL)}
+#       isolate(if(is.null(all_shifts())){return(NULL)})
+#       
+#       # Only refresh when series changes
+#       input$crossdate_series
+#       
+#         # Set value in control to previous shift for series
+#         isolate({
+#         if (input$crossdate_series %in% all_shifts()$Series){
+#           current_shift <- all_shifts()[all_shifts()$Series == input$crossdate_series, "Value"]
+#         } else {
+#           current_shift <- 0
+#         }
+#                       
+#         updateNumericInput(session, "offset", value=current_shift)
+#         print(paste(input$crossdate_series, current_shift))
+#         
+#         })
+#     })
     
     # Automatic shifting
     
