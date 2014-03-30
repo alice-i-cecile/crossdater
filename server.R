@@ -110,13 +110,62 @@ pseudo_residuals_tra <- function(series, tra, effects, model, split, link, dep_v
   effects <- synchronize_effects(effects, skele, split)
 
   # Only generate for new series
-  short_tra <- tra[tra$Tree %in% series, ]
+  short_tra <- tra[tra$Tree==series, ]
   
   predicted <- predicted_tra(effects, short_tra, model, split, link, dep_var)
     
   resids <- residuals_tra(short_tra, predicted, link, dep_var)
 
   return (resids)
+}
+
+# Shifting / merging / splitting ####
+check_shifts <- function(series, tra, effects, model, split, link, dep_var){
+  
+  # Extract data
+  series_tra <- tra[tra$Tree==series,]
+    
+  if ("Time" %in% split){
+    group <- series_tra$Time_Split[1]
+    
+    chron_start <- min(as.numeric(names(effects$Time[[group]])))
+    chron_end <- max(as.numeric(names(effects$Time[[group]])))  
+  } else {
+    chron_start <- min(as.numeric(names(effects$Time)))
+    chron_end <- max(as.numeric(names(effects$Time)))
+  }
+    
+  series_start <- min(as.numeric(series_tra$Time))
+  series_end <- max(as.numeric(series_tra$Time))
+                                          
+  series_length <- nrow(series_tra)
+  
+  
+  # Require at least one year overlap
+  min_shift <- chron_start - series_end 
+  max_shift <- chron_end - series_start
+  
+  # Find pseudo-residuals given shifts
+  shift_pseudo_residuals <- function(shift){
+    shifted_series_tra <- tra
+    shifted_series_tra[tra$Tree==series,"Time"] <- as.numeric(series_tra$Time) + shift
+    
+    shifted_pr <- pseudo_residuals_tra(series=series, tra=shifted_series_tra, effects=effects, model=model, split=split, link=link, dep_var=dep_var)
+    
+    return(shifted_pr)
+  }
+  
+  # Compute pseudo-residuals
+  pseudo_resids <- lapply(min_shift:max_shift, shift_pseudo_residuals)
+    
+  # Find sd of residuals at each position
+  shift_sd <- sapply(pseudo_resids, function(x){sd(x[[dep_var]], na.rm=T)})
+  
+  # Format as data.frame for pretty display
+  shift_df <- data.frame(Shift=min_shift:max_shift, sigma=shift_sd)
+  
+  return(shift_df)
+  
 }
 
 # Plotting ####
@@ -466,6 +515,7 @@ shinyServer(function(input, output, session) {
     # Crossdating plots
     output$crossdate_plot <- renderPlot({
       if (is.null(standardization())){return(NULL)}
+      if (is.null(input$crossdate_series)){return(NULL)}
       
       # Trigger when series selected changes
       # Or when data is modified
@@ -532,8 +582,17 @@ shinyServer(function(input, output, session) {
 #         })
 #     })
     
-    # Automatic shifting
-    
+    # Checking all shifts
+    output$shift_checks <- renderDataTable({
+      
+      if(is.null(input$crossdate_series)){return(NULL)}
+      
+      input$crossdate_series;standardization()
+      
+      isolate({shift_checks <- check_shifts(input$crossdate_series, new_tra(), standardization()$effects, input$model, input$split, input$link, input$dep_var)})
+      
+      return(shift_checks)
+    }, options=list(aaSorting=list(c(1, "asc")))) 
     
     # Split ring
     

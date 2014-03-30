@@ -168,9 +168,8 @@ shinyUI(pageWithSidebar(
         # Shift year +/-
         numericInput("offset", strong("Shift series"), value=0),
        
-        # Automatic shifting
-        # Pressing it again moves to next best position
-        actionButton("auto_offset", "Shift series automatically"),
+        # Show outcomes of shifting
+        dataTableOutput("shift_checks"),
        
         # Select year
         numericInput("selected_year", strong("Select Year"), value=2000),
