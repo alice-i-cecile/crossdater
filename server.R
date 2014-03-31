@@ -592,7 +592,7 @@ shinyServer(function(input, output, session) {
       isolate({shift_checks <- check_shifts(input$crossdate_series, new_tra(), standardization()$effects, input$model, input$split, input$link, input$dep_var)})
       
       return(shift_checks)
-    }, options=list(aaSorting=list(c(1, "desc")))) 
+    }, options=list(aaSorting=list(c(1, "asc")), iDisplayLength=10)) 
     
     # Split ring
     
