@@ -489,7 +489,7 @@ shinyServer(function(input, output, session) {
       })
       
       # Use time effect as default if available
-      selected_plot <- isolate({ifelse("Time" %in% input$model, "Time effect", "Sample depth by time")})
+      selected_plot <- isolate({ifelse("Time" %in% input$model, "time_effect_plot", "sample_depth_time_plot")})
         
       
       # Building input UI
