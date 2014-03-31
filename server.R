@@ -446,6 +446,58 @@ shinyServer(function(input, output, session) {
     
     
     # Selecting plot
+    # All standardization plots
+    # Select plot using dropdown menu
+    # Should change options given model
+    output$standardization_plot_options <- renderUI({
+      
+      # Update every time standardization is complete
+      standardization()
+      
+      # Common plots
+      plot_choices <- c("Residuals density"="residual_density_plot",
+                        "Sample depth by time"="sample_depth_time_plot",
+                        "Sample depth by age"="sample_depth_age_plot",
+                        "Mean series length"="series_length_plot")
+      
+      # Plots depending on effects
+      isolate({
+        
+        if("Tree" %in% input$model){
+          plot_choices <- c(plot_choices,
+                            "Tree effect"="tree_effect_plot",
+                            "Tree effect density"="tree_effect_density_plot",
+                            "Tree effect vs. age at sampling"="tree_effect_age_plot", 
+                            "Tree effect vs. year of birth"="tree_effect_year_plot"
+                            )
+        }
+        
+        if("Time" %in% input$model){
+          plot_choices <- c(plot_choices,
+                            "Time effect"="time_effect_plot",
+                            "Time effect density"="time_effect_density_plot"
+          )
+        }
+        
+        if("Age" %in% input$model){
+          plot_choices <- c(plot_choices,
+                            "Age effect"="age_effect_plot",
+                            "Age effect density"="age_effect_density_plot"
+          )
+        }
+        
+      })
+      
+      # Use time effect as default if available
+      selected_plot <- isolate({ifelse("Time" %in% input$model, "Time effect", "Sample depth by time")})
+        
+      
+      # Building input UI
+      selectInput("std_plot_display", label=strong("Standardization plot"),
+                  choices=plot_choices,
+                  selected=selected_plot  
+      )
+    })    
     
     # Making plot
     # Log transform y axis

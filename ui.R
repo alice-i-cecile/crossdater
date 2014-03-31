@@ -92,28 +92,16 @@ shinyUI(pageWithSidebar(
     )
   ),
   
-  
   mainPanel(
     tabsetPanel(
       
       # Tab 1
       tabPanel(strong("Standardization"), 
+        
         # All standardization plots
         # Select plot using dropdown menu
         # Should change options given model
-        selectInput("std_plot_display", label=strong("Plot displayed"),
-                    choices=c("Sample Depth by Time"="sample_depth_time_plot",
-                              "Sample Depth by Age"="sample_depth_age_plot",
-                              "Mean series length"="series_length_plot",
-                              "Tree effect"="tree_effect_plot",
-                              "Tree effect density"="tree_effect_density_plot", 
-                              "Time effect"="time_effect_plot",
-                              "Time effect density"="time_effect_density_plot", 
-                              "Age effect"="age_effect_plot",
-                              "Age effect density"="age_effect_density_plot", 
-                              "Residuals density"="residual_density_plot"),
-                    selected="Time effect"  
-        ),
+        uiOutput("standardization_plot_options"),
         
         # Selected plot
         plotOutput("standardization_plot"),
