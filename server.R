@@ -575,7 +575,7 @@ shinyServer(function(input, output, session) {
 #         } else {
 #           current_shift <- 0
 #         }
-#                       
+#         
 #         updateNumericInput(session, "offset", value=current_shift)
 #         print(paste(input$crossdate_series, current_shift))
 #         
@@ -592,7 +592,7 @@ shinyServer(function(input, output, session) {
       isolate({shift_checks <- check_shifts(input$crossdate_series, new_tra(), standardization()$effects, input$model, input$split, input$link, input$dep_var)})
       
       return(shift_checks)
-    }, options=list(aaSorting=list(c(1, "asc")))) 
+    }, options=list(aaSorting=list(c(1, "desc")))) 
     
     # Split ring
     
