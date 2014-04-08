@@ -6,6 +6,8 @@ library(stringr)
 library(igraph)
 library(cluster)
 library(ggdendro)
+library(changepoint)
+library(reshape2)
 
 # Utility ####
 
@@ -120,7 +122,7 @@ pseudo_residuals_tra <- function(series, tra, effects, model, split, link, dep_v
 }
 
 # Shifting / merging / splitting ####
-check_shifts <- function(series, tra, effects, model, split, link, dep_var){
+check_shifts <- function(series, tra, effects, model=c("Time", "Age"), split=NA, link="log", dep_var="Growth"){
   
   # Extract data
   series_tra <- tra[tra$Tree==series,]
@@ -165,6 +167,77 @@ check_shifts <- function(series, tra, effects, model, split, link, dep_var){
   shift_df <- data.frame(Shift=min_shift:max_shift, sigma=shift_sd)
   
   return(shift_df)
+  
+}
+
+# Modified from changepoint::single.mean.norm.calc
+# Probe for changepoints in mean
+# Calculates likelihood ratios between null and alternate hypotheses
+# Better scores, better split
+cp_mean_lhr <- function(x) {
+  n = length(x)
+  y = c(0, cumsum(x))
+  y2 = c(0, cumsum(x^2))
+  null = y2[n + 1] - y[n + 1]^2/n
+  taustar = 1:(n - 1)
+  alt = y2[taustar + 1] - y[taustar + 1]^2/taustar + (y2[n + 1] - y2[taustar + 1]) - ((y[n + 1] - y[taustar + 1])^2)/(n - taustar)
+  
+  likelihood_ratios <- null / alt
+  
+  return(likelihood_ratios)
+  
+}
+
+# Modified from changepoint::single.var.norm.calc
+# Probe for changepoints in variance
+# Calculates likelihood ratios between null and alternate hypotheses
+# Better scores, better split
+cp_var_lhr <- function(x) {
+  n = length(x)
+  mu = mean(x)
+  
+  y = c(0, cumsum((x - mu)^2))
+  null = n * log(y[n + 1]/n)
+  taustar = 1:(n - 1)
+  sigma1 = y[taustar + 1]/taustar
+  neg = sigma1 <= 0
+  sigma1[neg == TRUE] = NA
+  sigman = (y[n + 1] - y[taustar + 1])/(n - taustar)
+  neg = sigman <= 0
+  sigman[neg == TRUE] = NA
+  
+  alt = taustar * log(sigma1) + (n - taustar) * log(sigman)
+  
+  likelihood_ratios <- null / alt
+  
+  return(likelihood_ratios)
+}
+
+# Find the likelihood ratio for changepoints of variance and mean
+find_cp_lhr <- function(series, residuals, link="log", dep_var="Growth"){
+  
+  # Extract series
+  series_resids <- residuals[residuals$Tree==series,]
+  
+  x <- series_resids[[dep_var]]
+  
+  # Transform data by link
+  if (link=="log"){
+    x <- log(x)
+  }
+  
+  # Find log-likelihood ratios for a single mean and variance shifts
+  cp_mean <- cp_mean_lhr(x)
+  cp_var <- cp_var_lhr(x)
+
+    
+  # Values correspond to a breakpoint after that year
+  year_names <- series_resids$Time[1:(nrow(series_resids)-1)]
+  
+  # Shape results into a data.frame
+  cp_df <- data.frame(Year=year_names, Mean=cp_mean, Variance=cp_var)
+  
+  return(cp_df)
   
 }
 
@@ -570,26 +643,40 @@ shinyServer(function(input, output, session) {
       if (is.null(input$crossdate_series)){return(NULL)}
       
       # Trigger when series selected changes
+      # Plot to show changes
+      # Standardization is rerun
       # Or when data is modified
-      input$crossdate_series
-      new_tra()
+      input$crossdate_series;standardization();new_tra();input$crossdate_plot_choice
       
       # Generate updated residuals
-      isolate(new_residuals <- pseudo_residuals_tra(input$crossdate_series, new_tra(), standardization()$effects, input$model, input$split, input$link, input$dep_var))
+      isolate({
+        
+        new_residuals <- pseudo_residuals_tra(input$crossdate_series, new_tra(), standardization()$effects, input$model, input$split, input$link, input$dep_var)
       
       if (input$crossdate_plot_choice=="series_chron_cd_plot"){
         # Residual crossdating plot
         # Transform y
         # Dotted line shows limit of existing chronology
         # If no predicted values exist, compare to base level
-        my_plot <- isolate(make_std_series_chron_plot(input$crossdate_series, new_residuals, standardization()$effects, input$split, input$link, input$dep_var))
+        my_plot <- make_std_series_chron_plot(input$crossdate_series, new_residuals, standardization()$effects, input$split, input$link, input$dep_var)
       } else if (input$crossdate_plot_choice=="residual_cd_plot"){
         # Standardized series plus chronology crossdating plot
         # Transform y
         # Dotted line shows limit of existing chronology
         # If no predicted values exist, compare to base level
-        my_plot <- isolate(make_series_resid_plot(input$crossdate_series, new_residuals, standardization()$fit$sigma_sq, input$link, input$dep_var))
+        my_plot <- make_series_resid_plot(input$crossdate_series, new_residuals, standardization()$fit$sigma_sq, input$link, input$dep_var)
+      } else if (input$crossdate_plot_choice=="changepoint_plot"){
+        # Changepoint graph for mean and variance
+          
+          # Find changepoint scores
+          cp_df <- find_cp_lhr(input$crossdate_series, standardization()$dat$residuals, input$link, input$dep_var)        
+          cp_melt <- melt(cp_df, id.var="Year")
+          
+          # Plot variance and mean changepoint likelihood ratios on top of each other
+          my_plot <- ggplot(cp_melt, aes(x=Year, y=value, colour=variable)) + geom_line() + theme_bw() + ylab("Likelihood ratio (break at year / no break") + scale_colour_discrete("Type of change") + geom_hline(y=1)
       }
+    
+      })
       return(print(my_plot))
     })
     
@@ -634,6 +721,13 @@ shinyServer(function(input, output, session) {
 #         })
 #     })
     
+
+    
+    # Split ring
+    
+    # Merge rings
+    
+
     # Checking all shifts
     output$shift_checks <- renderDataTable({
       
@@ -644,12 +738,8 @@ shinyServer(function(input, output, session) {
       isolate({shift_checks <- check_shifts(input$crossdate_series, new_tra(), standardization()$effects, input$model, input$split, input$link, input$dep_var)})
       
       return(shift_checks)
-    }, options=list(aaSorting=list(c(1, "asc")), iDisplayLength=10)) 
-    
-    # Split ring
-    
-    # Merge rings
-    
+    }, options=list(aaSorting=list(c(1, "asc")), iDisplayLength=10))
+
   }
   
   # Hierarchical series plot ####

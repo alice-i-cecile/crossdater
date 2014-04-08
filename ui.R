@@ -140,7 +140,8 @@ shinyUI(pageWithSidebar(
         uiOutput("crossdate_series_list"),
         selectInput("crossdate_plot_choice", label=strong("Crossdating plot"),
                     choices=c("Std. series and chronology"="series_chron_cd_plot",
-                              "Residuals"="residual_cd_plot"),
+                              "Residuals"="residual_cd_plot",
+                              "Changepoints"="changepoint_plot"),
                     selected="series_chron_cd_plot"
         ),
         
@@ -156,9 +157,6 @@ shinyUI(pageWithSidebar(
         # Shift year +/-
         numericInput("offset", strong("Shift series"), value=0),
        
-        # Show outcomes of shifting
-        dataTableOutput("shift_checks"),
-       
         # Select year
         numericInput("selected_year", strong("Select Year"), value=2000),
         
@@ -169,7 +167,10 @@ shinyUI(pageWithSidebar(
         actionButton("split", "Split ring into two"),
        
         # Reset series
-        actionButton("reset", "Reset series")
+        actionButton("reset", "Reset series"),
+        
+        # Show outcomes of shifting
+        dataTableOutput("shift_checks")
       ),
       
       # Tab 4
