@@ -150,8 +150,7 @@ apply_changes_tra <- function(tra, changes, dep_var="Growth")
     }
     
   }
- 
-  
+
   return(tra)
 }
 
@@ -281,7 +280,6 @@ find_cp_lhr <- function(series, residuals, link="log", dep_var="Growth"){
   # Find log-likelihood ratios for a single mean and variance shifts
   cp_mean <- cp_mean_lhr(x)
   cp_var <- cp_var_lhr(x)
-
     
   # Values correspond to a breakpoint after that year
   year_names <- series_resids$Time[1:(nrow(series_resids)-1)]
@@ -915,6 +913,24 @@ shinyServer(function(input, output, session) {
       return(isolate(
         find_sigma_series(input$crossdate_series, resids=new_residuals, link=input$link, dep_var=input$dep_var)
         ))
+    })
+    
+    # Display current shift
+    output$current_shift <- renderText({
+      if (is.null(input$crossdate_series)){return(NULL)}
+      
+      if (is.null(standardization())){return(NULL)}
+      
+      
+      current_shift <- all_shifts()[all_shifts()$Series == input$crossdate_series, "Value"]
+      
+      print(current_shift)
+      
+      if (length(current_shift)==0){
+        return ("0")
+      }
+      
+      return(current_shift)
     })
     
     # Update shift series control

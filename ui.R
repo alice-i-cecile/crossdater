@@ -154,6 +154,10 @@ shinyUI(pageWithSidebar(
         strong("Sigma Sq."),
         textOutput(outputId="sd_series_resid"),
         
+        # Show standard deviation of residuals
+        strong("Current shift"),
+        textOutput(outputId="current_shift"),
+        
         # Shift year +/-
         numericInput("offset", strong("Shift series"), value=0),
        
