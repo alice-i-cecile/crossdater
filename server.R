@@ -76,7 +76,7 @@ apply_changes_tra <- function(tra, changes, dep_var="Growth")
     
     # Avoid side effects
     new_tra <- tra
-    new_tra$Time <- as.numeric(as.character(new_tra$Time))
+#     new_tra$Time <- as.numeric(as.character(new_tra$Time))
     
     # Including / excluding
     if (action=="Include"){
@@ -87,38 +87,43 @@ apply_changes_tra <- function(tra, changes, dep_var="Growth")
       new_tra[tra$Tree==series, "Time"] <- as.numeric(as.character(new_tra[tra$Tree==series, "Time"])) + as.numeric(value)
     }
     
-    if (action=="Merge"){
+    if (action=="Merge"){    
       
       # Find rows to merge
-      r1 <- tra[tra$Tree==series & tra$Time==value, ]
-      r2 <- tra[tra$Tree==series & tra$Time==(value+1), ]
+      i1 <- which(tra$Tree==series & tra$Time==value)
+      i2 <- which(tra$Tree==series & tra$Time==as.character(as.numeric(value)+1))
       
+      r1 <- tra[i1, ]
+      r2 <- tra[i2, ]
       
       # Sum together ring widths
       new_width <- r1[[dep_var]] + r2[[dep_var]]
       
       # Assign new value to first ring
-      new_tra[new_tra$Tree==series & new_tra$Time==value, dep_var] <- new_width
+      new_tra[i1, dep_var] <- new_width  
       
       # Delete second ring
-      new_tra <- new_tra[-new_tra$Tree==series & new_tra$Time==(value+1), ]
+      new_tra <- new_tra[-i2, ]
       
-      # Shift all following years
-      new_tra[new_tra$Tree==series & new_tra$Time > value, "Time"] <- new_tra[new_tra$Tree==series & new_tra$Time > value, "Time"] - 1
+      # Shift all following years      
+      new_tra[new_tra$Tree==series & new_tra$Time > as.numeric(value), "Time"] <- new_tra[new_tra$Tree==series & new_tra$Time > value, "Time"] - 1
+      
+      new_tra[new_tra$Tree==series & new_tra$Time > as.numeric(value), "Age"] <- new_tra[new_tra$Tree==series & new_tra$Time > value, "Age"] - 1
       
     }
-    
-    if (action=="Split"){
+  
+    if (action=="Split"){    
       
       # Find row to split
-      r1 <- tra[tra$Tree==series & tra$Time==value, ]
+      i1 <- which(tra$Tree==series & tra$Time==value)
       
+      r1 <- tra[i1, ]
       
-      # Sum together ring widths
+      # Split width in half
       new_width <- r1[[dep_var]] / 2
       
       # Assign new value to first ring
-      new_tra[new_tra$Tree==series & new_tra$Time==value, dep_var] <- new_width
+      new_tra[i1, dep_var] <- new_width  
       
       # Insert second ring
       r2 <- r1
@@ -128,9 +133,11 @@ apply_changes_tra <- function(tra, changes, dep_var="Growth")
       
       new_tra <- rbind(new_tra, r2)
       
-      # Shift all following years
-      new_tra[new_tra$Tree==series & new_tra$Time > value, "Time"] <- new_tra[new_tra$Tree==series & new_tra$Time > value, "Time"] + 1
+      # Shift all following years      
+      new_tra[new_tra$Tree==series & new_tra$Time > as.numeric(value), "Time"] <- new_tra[new_tra$Tree==series & new_tra$Time > value, "Time"] + 1
       
+      new_tra[new_tra$Tree==series & new_tra$Time > as.numeric(value), "Age"] <- new_tra[new_tra$Tree==series & new_tra$Time > value, "Age"] + 1
+            
     }
     
     return(new_tra)
@@ -449,6 +456,18 @@ shinyServer(function(input, output, session) {
           change_df <- rbind(change_df, shift_df)
       }
       
+      # Merging rings
+      if(!is.null(all_merges())){
+        merge_df <- all_merges()
+        change_df <- rbind(change_df, merge_df)
+      }
+      
+      # Splitting rings
+      if(!is.null(all_splits())){
+        split_df <- all_splits()
+        change_df <- rbind(change_df, split_df)
+      }
+            
       # Return changes if any exist
       if (nrow(change_df) > 0){
 
@@ -505,12 +524,78 @@ shinyServer(function(input, output, session) {
       return(shifts)
     })
     
+    # Keep track of all merges that occur      
+    all_merges <- reactive({
+      
+      # Only run when merge button is pressed
+      input$merge
+      
+      isolate({
+        
+        if(is.null(original_tra())){return(NULL)}
+        
+        # Create storage of old merges if it doesn't exist
+        if (!exists("old_merge", envir=.GlobalEnv)){
+          assign("old_merge", data.frame(Series=NA, Action=NA, Value=NA)[0,], envir=.GlobalEnv)
+        }
+                
+      # Load in old merges
+      merges <- old_merge      
+      
+      # Concatenate new merge
+      if(!is.null(input$crossdate_series) & !is.null(input$selected_year)){
+        new_merge <- data.frame(Series=input$crossdate_series, Action="Merge", Value=input$selected_year)
+        merges <- rbind(merges, new_merge)
+      }
+      
+      # Save updated merges
+      assign("old_merge", merges, envir=.GlobalEnv)
+      
+      })
+      
+      return(merges)
+
+    })
+    
+    # Keep track of all splits that occur      
+    all_splits <- reactive({
+      
+      # Only run when split button is pressed
+      input$split
+      
+      isolate({
+        
+        if(is.null(original_tra())){return(NULL)}
+        
+        # Create storage of old splits if it doesn't exist
+        if (!exists("old_split", envir=.GlobalEnv)){
+          assign("old_split", data.frame(Series=NA, Action=NA, Value=NA)[0,], envir=.GlobalEnv)
+        }
+        
+        # Load in old splits
+        splits <- old_split
+        
+        # Concatenate new split
+        if(!is.null(input$crossdate_series) & !is.null(input$selected_year)){
+          new_split <- data.frame(Series=input$crossdate_series, Action="Split", Value=input$selected_year)
+          splits <- rbind(splits, new_split)           
+        }  
+        
+        # Save updated splits
+        assign("old_split", splits, envir=.GlobalEnv)
+        
+      })
+      
+      return(splits)
+      
+    })
+    
     # Change dataframe to display
     output$changes <- renderTable({
       changes()
     })
     
-    # New data set
+    # Create updated dataset
     new_tra <- reactive({
       if (is.null(original_tra())){return(NULL)}
       
@@ -730,8 +815,9 @@ shinyServer(function(input, output, session) {
     output$sd_series_resid <- renderText({
       if (is.null(standardization())){return(NULL)}
       
+      if (is.null(input$crossdate_series)){return(NULL)}
+      
       # Triggers
-      input$crossdate_series
       new_tra()
       
       # Updated residuals
