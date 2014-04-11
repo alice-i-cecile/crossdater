@@ -71,9 +71,7 @@ apply_changes_tra <- function(tra, changes, dep_var="Growth")
 {
   
   changer <- function(series, action, value){
-    
-    print(action)
-    
+        
     # Avoid side effects
     new_tra <- tra
 #     new_tra$Time <- as.numeric(as.character(new_tra$Time))
@@ -467,7 +465,46 @@ shinyServer(function(input, output, session) {
         split_df <- all_splits()
         change_df <- rbind(change_df, split_df)
       }
+      
+      # Clean up change list
+      if (nrow(change_df) > 0){
+        
+        # Merges and splits cancel out
+        r <- 1
+        while (r <= nrow(change_df)){
+          
+          change_r <- change_df[r,]
+          
+          # Get rid of first opposite that each value hits
+          if (change_r$Action=="Merge"){
+                        
+            opp <- which(change_df$Series == change_r$Series & change_df$Value == change_r$Value & change_df$Action=="Split")[1]
+                        
+            # Cancel both changes out
+            if (!is.na(opp)){
+              change_df <- change_df[-c(opp, r),]
+            }
+          }
+          
+          # Get rid of first opposite that each value hits
+          if (change_r$Action=="Split"){
             
+            opp <- which(change_df$Series == change_r$Series & change_df$Value == change_r$Value & change_df$Action=="Merge")[1]
+            
+            # Cancel both changes out
+            if (!is.na(opp)){
+              change_df <- change_df[-c(opp, r),]
+            }          
+          }
+          
+          # Stay at the same row if opposite was found
+          # Previous entry in that place was deleted
+          if (is.na(opp)){
+            r <- r + 1
+          }
+        }        
+      }  
+      
       # Return changes if any exist
       if (nrow(change_df) > 0){
 
