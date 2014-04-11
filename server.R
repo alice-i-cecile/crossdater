@@ -38,7 +38,6 @@ find_dep_vars <- function(tra)
   return(dep_vars)
 }
 
-
 # Summarize series
 series_summary_table <- function(tra)
 {
@@ -68,14 +67,17 @@ check_included <- function(series, tra){
 }
 
 # Apply changes to tree-ring array
-apply_changes_tra <- function(tra, changes)
+apply_changes_tra <- function(tra, changes, dep_var="Growth")
 {
   
   changer <- function(series, action, value){
     
+    print(action)
+    
     # Avoid side effects
     new_tra <- tra
-      
+    new_tra$Time <- as.numeric(as.character(new_tra$Time))
+    
     # Including / excluding
     if (action=="Include"){
       new_tra[tra$Tree==series, "Include"] <- value
@@ -83,6 +85,52 @@ apply_changes_tra <- function(tra, changes)
     
     if (action=="Shift"){
       new_tra[tra$Tree==series, "Time"] <- as.numeric(as.character(new_tra[tra$Tree==series, "Time"])) + as.numeric(value)
+    }
+    
+    if (action=="Merge"){
+      
+      # Find rows to merge
+      r1 <- tra[tra$Tree==series & tra$Time==value, ]
+      r2 <- tra[tra$Tree==series & tra$Time==(value+1), ]
+      
+      
+      # Sum together ring widths
+      new_width <- r1[[dep_var]] + r2[[dep_var]]
+      
+      # Assign new value to first ring
+      new_tra[new_tra$Tree==series & new_tra$Time==value, dep_var] <- new_width
+      
+      # Delete second ring
+      new_tra <- new_tra[-new_tra$Tree==series & new_tra$Time==(value+1), ]
+      
+      # Shift all following years
+      new_tra[new_tra$Tree==series & new_tra$Time > value, "Time"] <- new_tra[new_tra$Tree==series & new_tra$Time > value, "Time"] - 1
+      
+    }
+    
+    if (action=="Split"){
+      
+      # Find row to split
+      r1 <- tra[tra$Tree==series & tra$Time==value, ]
+      
+      
+      # Sum together ring widths
+      new_width <- r1[[dep_var]] / 2
+      
+      # Assign new value to first ring
+      new_tra[new_tra$Tree==series & new_tra$Time==value, dep_var] <- new_width
+      
+      # Insert second ring
+      r2 <- r1
+      r2[[dep_var]] <- new_width
+      r2$Time <- r2$Time +1
+      r2$Age <- r2$Age + 1
+      
+      new_tra <- rbind(new_tra, r2)
+      
+      # Shift all following years
+      new_tra[new_tra$Tree==series & new_tra$Time > value, "Time"] <- new_tra[new_tra$Tree==series & new_tra$Time > value, "Time"] + 1
+      
     }
     
     return(new_tra)
@@ -474,7 +522,7 @@ shinyServer(function(input, output, session) {
       }
       
       # Refresh based on change list
-      return(apply_changes_tra(original_tra(), changes()))     
+      return(apply_changes_tra(original_tra(), changes(), input$dep_var))     
     })
   }
     
@@ -720,12 +768,6 @@ shinyServer(function(input, output, session) {
 #         
 #         })
 #     })
-    
-
-    
-    # Split ring
-    
-    # Merge rings
     
 
     # Checking all shifts
