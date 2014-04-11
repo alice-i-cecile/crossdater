@@ -474,6 +474,7 @@ shinyServer(function(input, output, session) {
         while (r <= nrow(change_df)){
           
           change_r <- change_df[r,]
+          opp <- NA
           
           # Get rid of first opposite that each value hits
           if (change_r$Action=="Merge"){
@@ -519,6 +520,7 @@ shinyServer(function(input, output, session) {
     
     # Keep track of all shifts that occur      
     all_shifts <- reactive({
+            
       if(is.null(original_tra())){return(NULL)}
       
       # Create storage of old shifts if it doesn't exist
@@ -624,6 +626,56 @@ shinyServer(function(input, output, session) {
       })
       
       return(splits)
+      
+    })
+    
+    # Undo all changes to a series
+    reset_series <- observe({
+      
+      # Proc on reset button
+      input$reset
+      
+      isolate({
+        
+        # Undo shifts
+        if(exists("old_shifts")){
+          rev_shifts <- old_shifts[-which(as.character(old_shifts$Series) == input$crossdate_series),]
+          
+          if (any(is.na(rev_shifts))){
+            rev_shifts <- rev_shifts[0,]
+          }          
+          
+          rm("old_shifts")
+          assign("old_shifts", rev_shifts, envir=.GlobalEnv)
+        }
+        
+        # Undo merges
+        if(exists("old_merge")){
+          rev_merge <- old_merge[-which(as.character(old_shifts$Series) == input$crossdate_series),]
+          
+          if (any(is.na(rev_merge))){
+            rev_merge <- rev_merge[0,]
+          }
+          
+          rm("old_merge")
+          assign("old_merge", rev_merge, envir=.GlobalEnv) 
+        }
+          
+        
+        # Undo splits
+        if (exists("old_split")){
+          rev_split <- old_split[-which(as.character(old_shifts$Series) == input$crossdate_series),]
+          
+          if (any(is.na(rev_split))){
+            rev_split <- rev_split[0,]
+          }
+          
+          rm("old_split")
+          assign("old_split", rev_split, envir=.GlobalEnv)   
+        }
+      })
+      
+      return(NULL)
       
     })
     
@@ -889,12 +941,14 @@ shinyServer(function(input, output, session) {
 #         
 #         })
 #     })
-    
 
     # Checking all shifts
     output$shift_checks <- renderDataTable({
       
       if(is.null(input$crossdate_series)){return(NULL)}
+      
+      if(is.null(standardization())){return(NULL)}
+      
       
       input$crossdate_series;standardization()
       
