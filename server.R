@@ -190,7 +190,6 @@ check_shifts <- function(series, tra, effects, model=c("Time", "Age"), split=NA,
                                           
   series_length <- nrow(series_tra)
   
-  
   # Require at least one year overlap
   min_shift <- chron_start - series_end 
   max_shift <- chron_end - series_start
@@ -408,7 +407,6 @@ shinyServer(function(input, output, session) {
   
   # Updating tree ring dataset ####
   {
-    
     # Change list  
     changes <- reactive({
       
@@ -694,7 +692,7 @@ shinyServer(function(input, output, session) {
       # Plot to show changes
       # Standardization is rerun
       # Or when data is modified
-      input$crossdate_series;standardization();new_tra();input$crossdate_plot_choice
+      input$crossdate_series;standardization();new_tra();input$crossdate_plot_choice; input$selected_year
       
       # Generate updated residuals
       isolate({
@@ -706,13 +704,13 @@ shinyServer(function(input, output, session) {
         # Transform y
         # Dotted line shows limit of existing chronology
         # If no predicted values exist, compare to base level
-        my_plot <- make_std_series_chron_plot(input$crossdate_series, new_residuals, standardization()$effects, input$split, input$link, input$dep_var)
+        my_plot <- make_std_series_chron_plot(input$crossdate_series, new_residuals, standardization()$effects, input$split, input$link, input$dep_var) + geom_vline(x=input$selected_year)
       } else if (input$crossdate_plot_choice=="residual_cd_plot"){
         # Standardized series plus chronology crossdating plot
         # Transform y
         # Dotted line shows limit of existing chronology
         # If no predicted values exist, compare to base level
-        my_plot <- make_series_resid_plot(input$crossdate_series, new_residuals, standardization()$fit$sigma_sq, input$link, input$dep_var)
+        my_plot <- make_series_resid_plot(input$crossdate_series, new_residuals, standardization()$fit$sigma_sq, input$link, input$dep_var) + geom_vline(x=input$selected_year)
       } else if (input$crossdate_plot_choice=="changepoint_plot"){
         # Changepoint graph for mean and variance
           
@@ -721,7 +719,7 @@ shinyServer(function(input, output, session) {
           cp_melt <- melt(cp_df, id.var="Year")
           
           # Plot variance and mean changepoint likelihood ratios on top of each other
-          my_plot <- ggplot(cp_melt, aes(x=Year, y=value, colour=variable)) + geom_line() + theme_bw() + ylab("Likelihood ratio (break at year / no break") + scale_colour_discrete("Type of change") + geom_hline(y=1)
+          my_plot <- ggplot(cp_melt, aes(x=Year, y=value, colour=variable)) + geom_line() + theme_bw() + ylab("Likelihood ratio (break at year / no break") + scale_colour_discrete("Type of change") + geom_hline(y=1) + geom_vline(x=input$selected_year)
       }
     
       })
