@@ -56,7 +56,7 @@ shinyUI(pageWithSidebar(
                   label = h4("Link"),
                   choices = c(Identity = "identity",
                               Log = "log"),
-                  selected = "log"
+                  selected = "Log"
       ),
       
       # Model fitting optimizer
@@ -66,7 +66,7 @@ shinyUI(pageWithSidebar(
                               Alternate = "alternate",
                               GLM = "glm",
                               GAM = "gam"),
-                  selected = "alternate"
+                  selected = "Alternate"
       ),
       
       
