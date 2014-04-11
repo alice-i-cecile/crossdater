@@ -361,7 +361,7 @@ make_hclust_plot <- function(resids, link="log", dep_var="Growth"){
   
   htree <- hclust(dummy_d)
     
-  hplot <- ggdendrogram(dendro_data(htree, type="triangle"), rotate=TRUE)
+  hplot <- ggdendrogram(dendro_data(htree), rotate=TRUE)
   
   return(hplot)
 }
