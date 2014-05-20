@@ -50,7 +50,7 @@ shinyUI(pageWithSidebar(
           # 0 means automatic number of clusters
           condition = "input.auto_cluster",
           
-          numericInput("n_clusters", strong("Number of clusters"), min=0, value=2)
+          numericInput("n_clusters", strong("Number of clusters (0 chooses number of clusters automatically)"), min=0, value=2)
         )
       ),
       
