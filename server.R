@@ -8,6 +8,8 @@ library(cluster)
 library(ggdendro)
 library(changepoint)
 library(reshape2)
+library(tools)
+library(dplR)
 
 # Utility ####
 
@@ -369,7 +371,7 @@ make_hclust_plot <- function(resids, link="log", dep_var="Growth"){
   return(hplot)
 }
 
-# IO ####
+# Input ####
 shinyServer(function(input, output, session) { 
   
   # Processing input ####
@@ -382,13 +384,25 @@ shinyServer(function(input, output, session) {
         return(NULL)
       }
       
-      inFile <- input$tra_upload
-      my_csv <- read.csv(inFile$datapath, header=T)
-      rownames(my_csv) <- my_csv[[1]]
-      my_csv <- my_csv[,-1]
+      print(input$tra_upload)
       
-      tra <- my_csv
+      # Determine data type
+      file_extension <- file_ext(input$tra_upload$name)
       
+      # Load and convert files
+      if (file_extension == "csv"){
+        my_csv <- read.csv(input$tra_upload$datapath, header=T)
+        rownames(my_csv) <- my_csv[[1]]
+        my_csv <- my_csv[,-1]    
+        tra <- my_csv
+      } else if (tolower(file_extension) == "rdata") {
+        tra <- load(input$tra_upload$datapath)       
+      } else if (file_extension %in% c("rwl", "tridas", "txt", "fh")) {
+        rwl <- read.rwl(input$tra_upload$datapath)
+        tra <- rwl_to_tra(rwl)    
+      } else {
+        print("File extension not recognized.")
+      }
       
       # Include all series by default
       if (!("Include" %in% names(tra))){
