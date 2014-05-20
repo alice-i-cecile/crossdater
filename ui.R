@@ -22,7 +22,7 @@ shinyUI(pageWithSidebar(
       
       # Standardization model
       checkboxGroupInput("model", h4("Model effects"),
-                         c("Tree", "Time", "Age"),
+                         c("Age", "Tree", "Time"),
                          selected=c("Time", "Age")),
       
       # Split effects
@@ -59,7 +59,7 @@ shinyUI(pageWithSidebar(
                   label = h4("Link"),
                   choices = c(Identity = "identity",
                               Log = "log"),
-                  selected = "Log"
+                  selected = "log"
       ),
       
       # Model fitting optimizer
@@ -69,7 +69,7 @@ shinyUI(pageWithSidebar(
                               Alternate = "alternate",
                               GLM = "glm",
                               GAM = "gam"),
-                  selected = "Alternate"
+                  selected = "alternate"
       ),
       
       
@@ -205,7 +205,7 @@ shinyUI(pageWithSidebar(
         
         h3("Help"),
         
-        strong("Uploading:"), br(),br(),=
+        strong("Uploading:"), br(),br(),
         
         strong("Downloading:"), br(),br(),
         
