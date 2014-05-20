@@ -155,7 +155,7 @@ shinyUI(pageWithSidebar(
         plotOutput("crossdate_plot"),
         
         # Show standard deviation of residuals
-        strong("Sigma Sq."),
+        strong("Standard deviation of series residuals"),
         textOutput(outputId="sd_series_resid"),
         
         # Show standard deviation of residuals

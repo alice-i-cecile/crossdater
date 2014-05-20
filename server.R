@@ -217,8 +217,8 @@ check_shifts <- function(series, tra, effects, model=c("Time", "Age"), split=NA,
   shift_sd <- sapply(pseudo_resids, function(x){sd(x[[dep_var]], na.rm=T)})
   
   # Format as data.frame for pretty display
-  shift_df <- data.frame(Shift=min_shift:max_shift, sigma=shift_sd)
-  
+  shift_df <- data.frame(shift=min_shift:max_shift, sigma=shift_sd)
+    
   return(shift_df)
   
 }
@@ -851,6 +851,8 @@ shinyServer(function(input, output, session) {
         # Add information on 
         if (!is.null(standardization())){
           sst$sigma <- sapply(sst$Series, find_sigma_series, resids=standardization()$dat$residuals, link=input$link, dep_var=input$dep_var)
+          
+          names(sst)[names(sst)=="sigma"] <- "Standard deviation of series residuals"
         }
         
         return(sst)
@@ -982,8 +984,10 @@ shinyServer(function(input, output, session) {
       
       isolate({shift_checks <- check_shifts(input$crossdate_series, new_tra(), standardization()$effects, input$model, input$split, input$link, input$dep_var)})
       
+      names(shift_checks) <- c("Shift", "Standard deviation of series residuals")
+      
       return(shift_checks)
-    }, options=list(aaSorting=list(c(1, "asc")), iDisplayLength=10))
+    }, options=list(aaSorting=list(c(1, "asc")), iDisplayLength=5))
 
   }
   
