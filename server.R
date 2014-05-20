@@ -988,10 +988,35 @@ shinyServer(function(input, output, session) {
   # Saving output ####
   {
     # New dataset
-    output$new_tra <- reactive(new_tra())
+    
+    output$new_tra <- downloadHandler(
+      filename = "new_tra.csv",
+      
+      content = function(file){
+        write.csv(new_tra(), file)
+      }
+    )
+    
+    # Change list
+    output$change_list <- downloadHandler(
+      filename = "change_list.csv",
+      
+      content = function(file){
+        write.csv(changes(), file)
+      }
+    )
     
     # Final standardization
-    output$standardization <- reactive(standardization())
+    output$last_standardization <- downloadHandler(
+      filename = "standardization.RData",
+      
+      content = function(file) {
+        
+        last_standardization <- standardization()
+        
+        save(last_standardization, file = file)
+      }
+    )
       
   }
   
