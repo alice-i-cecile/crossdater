@@ -371,7 +371,7 @@ make_hclust_plot <- function(resids, link="log", dep_var="Growth"){
   return(hplot)
 }
 
-# Input ####
+# Server ####
 shinyServer(function(input, output, session) { 
   
   # Processing input ####
@@ -1033,5 +1033,34 @@ shinyServer(function(input, output, session) {
     )
       
   }
+
+  # Help details ####
+  output$standardization_analogues <- renderTable({
+    
+    standardization_analogues_df <- data.frame(
+    "Traditional technique"=c(
+      "Regional curve standardization",
+      "Multiple regional curves",
+      "Flat detrending",
+      "Individual series spline detrending"
+    ), 
+    "Analagous model"= c(
+      "Time and Age effects",
+      "Time and Age effects, split Age effect",
+      "Tree and Time effects",
+      "Time and Age effects, split Age effect, complete clustering, GAM optimization"
+    ),
+    "Notes"=c(
+      "Add a Tree effect to address modern sample bias",
+      "Use manual clustering to address ecologically distinct growth patterns",
+      "Model-based alternative does not suffer from segment-length curse",
+      "Model-based alternative does not suffer from segment-length curse"
+    ))
+    
+    # Ensure correct use of spaces
+    names(standardization_analogues_df) <- c("Traditional technique", "Analagous model", "Notes")
+    
+    return(standardization_analogues_df)
+  })
   
 })

@@ -196,14 +196,47 @@ shinyUI(pageWithSidebar(
       # Tab 6: About
       {tabPanel(strong("About"),
         
-               h1("Theory"),
-        "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+        h3("Philosophy"),
+        "Crossdating tree rings is always going to be hard. But it doesn't have to be painful. CrossdateR combines a rigorous and innovative model-based perspective with a modern, easy to learn graphical user interface to allow you  explore your data at an unprecedented level of detail.", br(), br(),
         
-        h1("Help"),
-        "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+        "Unlike other programs, crossdateR fully integrates crossdating and tree-ring standardization. The reason is simple: the same secondary effects that interfere with the construction of the final chronology also interferes with determining the common signals needed for crossdating. Most traditional dendrochronological statistics are deliberately absent as they have been largely replaced by simpler, more unified model-based alternatives.", br(), br(),
         
-        h1("Author"),
-        "Alice I. Cecile, 2014"
+        "You should be able to focus on your science, not your software. With a simple integrated workflow, interactive changes and a clean visual exploration of your series crossdateR allows you to let your intuition guide you.",
+        
+        h3("Help"),
+        
+        strong("Uploading:"), br(),br(),=
+        
+        strong("Downloading:"), br(),br(),
+        
+        strong("More help:"),
+        
+        h3("Theory"),
+        "crossdateR uses a model-based perspective on tree ring data to power its standardization and crossdating tools. Instead of using the traditional assortment of algorithms we allow the user to make explicit decisions about the patterns in their data and then use powerful model-fitting tools to do the heavy lifting.", br(), br(),
+        
+        "Picking out the appropriate standardization technique is one of the most challenging and subjective tasks in tree ring analysis. By conceptualizing various standardization algorithms as models that explain the tree ring data selected, we can use model selection tools to help us decide. When working with real data, researchers can never know the true time signal that they seek. As a result, models must be evaluated on the basis of their ability to parsimoniously explain the data available. If the model can reliably capture the key features of the data, it has a better chance of correctly seperating the desired time signal from the time. CrossdateR provides a number of model fit statistics for descriptive and model selection purposes. Adjusted R-squared, AICc and BIC are the most appropriate metrics for model selection as they balance model fit and complexity.", br(), br(),
+        
+        "Although they are distinct, there exist rough analogues between many traditional standardization techniques and various standardization models. The table below lists these:", br(), br(),
+        
+        tableOutput("standardization_analogues"),
+        
+        "The Link option determines the form of the model: Identity means that the effects are additive, Log means that the effects are multiplicative. This roughly corresponds to the use of differencing vs. ratios when extracting the standardized series. In general, a log link function is more appropriate for ring width / basal area increment data but this can be checked by examining the residuals of the model.", br(), br(),
+        
+        "The choice of Optimizer determines the technique used to estimate the chosen model. Alternate is effectively the traditional algorithmic technique in which the Age effect is estimated before the Time effect. It is strictly inferior to the other optimizers available, suffers from segment-length curse and should only be used to explore the effects of changing the estimation technique on your chronology. Alternate and GLM optimizers perform very well and typically produce very similar results. The alternate technique is based on signal-free standardization however while the GLM technique uses generalized linear models to standardize the chronology. The GAM optimizer uses generalized additive models to fit nonparametric smooth functions to the Age effect in the model. This is usually a more realistic option than assuming a completely discontinuous Age effect. This can dramatically improve model power by reducing the degrees of freedom used for estimating the Age effect and result in a more reliable estimation of the time signal, especially when the Age effect is split.", br(), br(),
+        
+        "CROSSDATING STATISTICS",
+        
+        h3("Papers"),
+        
+        
+        h3("Author and version information"),
+          strong("Version:"), "0.1 (May 20, 2014)", br(),
+
+          strong("Citation:"), "", br(),
+
+          strong("Webpage:"), "https://github.com/alice-i-cecile/crossdateR", br(),          
+  
+          strong("Author:"), "Alice I. Cecile <alice.i.cecile@gmail.com>"
       )}       
     )
   )
