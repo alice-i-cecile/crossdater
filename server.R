@@ -887,7 +887,7 @@ shinyServer(function(input, output, session) {
         # Changepoint graph for mean and variance
           
           # Find changepoint scores
-          cp_df <- find_cp_lhr(input$crossdate_series, standardization()$dat$residuals, input$link, input$dep_var)        
+          cp_df <- find_cp_lhr(input$crossdate_series, new_residuals, input$link, input$dep_var)        
           cp_melt <- melt(cp_df, id.var="Year")
           
           # Plot variance and mean changepoint likelihood ratios on top of each other
