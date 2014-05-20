@@ -143,7 +143,7 @@ shinyUI(pageWithSidebar(
         # Select series to crossdate
         uiOutput("crossdate_series_list"),
         selectInput("crossdate_plot_choice", label=strong("Crossdating plot"),
-                    choices=c("Std. series and chronology"="series_chron_cd_plot",
+                    choices=c("Standardized series and chronology"="series_chron_cd_plot",
                               "Residuals"="residual_cd_plot",
                               "Changepoints"="changepoint_plot"),
                     selected="series_chron_cd_plot"
