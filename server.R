@@ -923,9 +923,7 @@ shinyServer(function(input, output, session) {
       
       
       current_shift <- all_shifts()[all_shifts()$Series == input$crossdate_series, "Value"]
-      
-      print(current_shift)
-      
+            
       if (length(current_shift)==0){
         return ("0")
       }
