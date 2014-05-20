@@ -805,7 +805,6 @@ shinyServer(function(input, output, session) {
     })    
     
     # Making plot
-    # Log transform y axis
     output$standardization_plot <- renderPlot({
         
         # Requires standardization to be complete        
@@ -818,7 +817,11 @@ shinyServer(function(input, output, session) {
       # Requires standardization to be complete        
       if(is.null(standardization())){return(NULL)}
       
-      return(data.frame(standardization()$fit))
+      model_fit <- data.frame(standardization()$fit)
+      
+      names(model_fit) <- c("Number of data points", "Number of parameters estimated", "Standard deviation of residuals", "Total sum of squares", "Residual sum of squares", "Log-likelihood", "R^2", "Adjusted R^2", "AIC", "AICc", "BIC")
+      
+      return(model_fit)
     })
     
   }
@@ -1039,6 +1042,7 @@ shinyServer(function(input, output, session) {
   }
 
   # Help details ####
+  {
   output$standardization_analogues <- renderTable({
     
     standardization_analogues_df <- data.frame(
@@ -1066,5 +1070,6 @@ shinyServer(function(input, output, session) {
     
     return(standardization_analogues_df)
   })
-  
+  }
+
 })
