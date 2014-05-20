@@ -9,7 +9,10 @@ shinyUI(pageWithSidebar(
     
   # Sidebar
   sidebarPanel(
-    wellPanel(
+    
+    # Standardization options
+    {wellPanel(
+    
       h3("Standardization options"),
       
       # Dependent variable to use
@@ -73,10 +76,10 @@ shinyUI(pageWithSidebar(
       
       # Standardize! (button)
       actionButton("standardize", "Standardize my data")
-    ),
+    )},
     
     # IO
-    wellPanel(
+    {wellPanel(
       h3("Data"),
       # File input
       h4("Load data"),
@@ -89,14 +92,15 @@ shinyUI(pageWithSidebar(
       downloadButton("change_list", "Download change list"),
       downloadButton("last_standardization", "Download last standardization")
       
-    )
+    )}
   ),
   
+  # Main
   mainPanel(
     tabsetPanel(
       
-      # Tab 1
-      tabPanel(strong("Standardization"), 
+      # Tab 1: Standardization
+      {tabPanel(strong("Standardization"), 
         
         # All standardization plots
         # Select plot using dropdown menu
@@ -112,10 +116,10 @@ shinyUI(pageWithSidebar(
           h3("Model fit"),
           tableOutput("model_fit")
         )
-      ),
+      )},
       
-      # Tab 2
-      tabPanel(strong("Series"),              
+      # Tab 2: Series
+      {tabPanel(strong("Series"),              
   
         # Summary for series
         # Sortable table: http://glimmer.rstudio.com/szakacs/FooTableDemo/
@@ -131,10 +135,10 @@ shinyUI(pageWithSidebar(
         # https://groups.google.com/forum/#!topic/shiny-discuss/38Edf85wl_g
         uiOutput("series_checklist")      
 
-      ),
+      )},
       
-      # Tab 3
-      tabPanel(strong("Crossdating"), 
+      # Tab 3: Crossdating
+      {tabPanel(strong("Crossdating"), 
         
         # Select series to crossdate
         uiOutput("crossdate_series_list"),
@@ -175,22 +179,22 @@ shinyUI(pageWithSidebar(
         
         # Show outcomes of shifting
         dataTableOutput("shift_checks")
-      ),
+      )},
       
-      # Tab 4
-      tabPanel(strong("Hierarchical cluster"),
+      # Tab 4: Hierarchical cluster
+      {tabPanel(strong("Hierarchical cluster"),
                # Hierarchical cluster plot of series
                # ggdendro library
                plotOutput("hclust_series_plot")
-      ),
+      )},
       
-      # Tab 5
-      tabPanel(strong("Changes"),
+      # Tab 5: Changes
+      {tabPanel(strong("Changes"),
               tableOutput("changes")
-      ),
+      )},
       
-      # Tab 6
-      tabPanel(strong("About"),
+      # Tab 6: About
+      {tabPanel(strong("About"),
         
                h1("Theory"),
         "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
@@ -200,7 +204,7 @@ shinyUI(pageWithSidebar(
         
         h1("Author"),
         "Alice I. Cecile, 2014"
-      )       
+      )}       
     )
   )
 ))
