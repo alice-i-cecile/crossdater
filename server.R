@@ -6,10 +6,10 @@ library(stringr)
 library(igraph)
 library(cluster)
 library(ggdendro)
-library(changepoint)
 library(reshape2)
 library(tools)
 library(dplR)
+library(plyr)
 
 # Utility ####
 
@@ -50,15 +50,17 @@ series_summary_table <- function(tra)
   return(sst)
 }
 
-# Returns sigma^2 of residuals
-find_sigma_series <- function(series, resids, link="log", dep_var="Growth"){
+# Returns (corrected) root-mean square of residuals
+find_rms_series <- function(series, resids, link="log", dep_var="Growth"){
   x <- resids[resids$Tree==series, dep_var]
   
   if (link=="log"){
     x <- log(x)
   }
   
-  return(sd(x, na.rm=T))
+  rms <- sqrt(sum(x^2, na.rm=TRUE)/(length(x[!is.na(x)])-1))
+  
+  return(rms)
 }
 
 # Changes ####
@@ -213,11 +215,19 @@ check_shifts <- function(series, tra, effects, model=c("Time", "Age"), split=NA,
   # Compute pseudo-residuals
   pseudo_resids <- lapply(min_shift:max_shift, shift_pseudo_residuals)
     
-  # Find sd of residuals at each position
-  shift_sd <- sapply(pseudo_resids, function(x){sd(x[[dep_var]], na.rm=T)})
+  # Find rms of residuals at each position
+  shift_rms <- sapply(pseudo_resids, function(x){
+    y <- x[[dep_var]]
+    
+    if (link == "log"){
+      y <- log(y)
+    }
+    
+    sqrt(sum(y^2, na.rm=TRUE)/(length(y[!is.na(y)])-1))
+  })
   
   # Format as data.frame for pretty display
-  shift_df <- data.frame(shift=min_shift:max_shift, sigma=shift_sd)
+  shift_df <- data.frame(shift=min_shift:max_shift, rms=shift_rms)
     
   return(shift_df)
   
@@ -383,9 +393,7 @@ shinyServer(function(input, output, session) {
       if (is.null(input$tra_upload)) {
         return(NULL)
       }
-      
-      print(input$tra_upload)
-      
+            
       # Determine data type
       file_extension <- file_ext(input$tra_upload$name)
       
@@ -409,6 +417,7 @@ shinyServer(function(input, output, session) {
         tra$Include <- TRUE
       }
       
+      print(tra)
       return(tra)
       })
     
@@ -518,9 +527,14 @@ shinyServer(function(input, output, session) {
         }        
       }  
       
+
+      
       # Return changes if any exist
       if (nrow(change_df) > 0){
 
+        # Add a column for notes
+        change_df$Notes <- NA
+        
         # Make sure columns are not factors
         change_df <- data.frame(lapply(change_df, as.character), stringsAsFactors=FALSE)
         
@@ -722,16 +736,26 @@ shinyServer(function(input, output, session) {
         # Data needs to be loaded
         if (is.null(original_tra())){return(NULL)}
         
-        # Only use included series
+        # Only use included data and series
         inc_tra <- new_tra()
         inc_tra <- inc_tra[inc_tra$Include==TRUE,]
         
+        # Clustering options
+        
+        e_split <- ifelse(input$e_split == "None", NA, input$e_split)
+        
+        auto_cluster <- input$cluster_type == "Automatic" & !is.na(e_split)
+        
+        if (input$cluster_type == "Complete"){
+          inc_tra[[paste(input$e_split, "Split", sep="_")]] <- inc_tra$Tree
+        }
+        
         # Standardize
         std <- standardize_tra(inc_tra, 
-                        model=input$model, split=input$e_split, 
+                        model=input$model, split=e_split, 
                         link=input$link, dep_var=input$dep_var, 
                         optim=input$optim, 
-                        auto_cluster=input$auto_cluster, n_clusters=input$n_clusters, 
+                        auto_cluster=auto_cluster, n_clusters=input$n_clusters, 
                         show_plots=F, return_data=T)
         
         # Add in pseudoresiduals
@@ -853,9 +877,9 @@ shinyServer(function(input, output, session) {
         
         # Add information on 
         if (!is.null(standardization())){
-          sst$sigma <- sapply(sst$Series, find_sigma_series, resids=standardization()$dat$residuals, link=input$link, dep_var=input$dep_var)
+          sst$rms <- sapply(sst$Series, find_rms_series, resids=standardization()$dat$residuals, link=input$link, dep_var=input$dep_var)
           
-          names(sst)[names(sst)=="sigma"] <- "Standard deviation of series residuals"
+          names(sst)[names(sst)=="rms"] <- "Root mean square of series residuals"
         }
         
         return(sst)
@@ -917,8 +941,8 @@ shinyServer(function(input, output, session) {
       return(print(my_plot))
     })
     
-    # Standard deviation of series residuals
-    output$sd_series_resid <- renderText({
+    # Root mean square of series residuals
+    output$sd_series_rms <- renderText({
       if (is.null(standardization())){return(NULL)}
       
       if (is.null(input$crossdate_series)){return(NULL)}
@@ -930,7 +954,7 @@ shinyServer(function(input, output, session) {
       isolate(new_residuals <- pseudo_residuals_tra(input$crossdate_series, new_tra(), standardization()$effects, input$model, input$split, input$link, input$dep_var))
       
       return(isolate(
-        find_sigma_series(input$crossdate_series, resids=new_residuals, link=input$link, dep_var=input$dep_var)
+        find_rms_series(input$crossdate_series, resids=new_residuals, link=input$link, dep_var=input$dep_var)
         ))
     })
     
@@ -1004,7 +1028,18 @@ shinyServer(function(input, output, session) {
       ))
       
     })
-  }  
+  } 
+  
+  # Change notes ####
+  {
+    # Change to make note on
+    output$change_notes_choices <- renderUI({
+      if (is.null(original_tra())){return(NULL)}
+      selectInput("change_note_choice", label=strong("Make note on"),
+                  choices=unique(original_tra()$Tree)
+      )
+    })  
+  }
     
   # Saving output ####
   {
