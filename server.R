@@ -22,13 +22,13 @@ find_dep_vars <- function(tra)
     x <- x[!is.na(x)]
     
     # Must be numeric in value
-    if (any(is.na(as.numeric(x)))){
+    if (!all(is.numeric(x))){
       return(FALSE)
     }
     
     # Must contain unique values, not replicates
     # Each value can be replicated at most 2 times
-    if (length(unique(x)) < (length(x)/2)){
+    if (cname == "Time" | cname =="Age"){
       return(FALSE)
     }
     
@@ -399,10 +399,7 @@ shinyServer(function(input, output, session) {
       
       # Load and convert files
       if (file_extension == "csv"){
-        my_csv <- read.csv(input$tra_upload$datapath, header=T)
-        rownames(my_csv) <- my_csv[[1]]
-        my_csv <- my_csv[,-1]    
-        tra <- my_csv
+        tra <- read.csv(input$tra_upload$datapath, header=T)
       } else if (tolower(file_extension) == "rdata") {
         tra <- load(input$tra_upload$datapath)       
       } else if (file_extension %in% c("rwl", "tridas", "txt", "fh")) {
@@ -417,7 +414,6 @@ shinyServer(function(input, output, session) {
         tra$Include <- TRUE
       }
       
-      print(tra)
       return(tra)
       })
     
